@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="バー注文">
+<meta name="theme-color" content="#0b5d4b">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>バー注文・仕入れ管理（NT$）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+:root{
+  --teal:#0b5d4b; --teal-2:#0f7a63; --teal-soft:#e3f1ed; --teal-line:#b9dcd2;
+  --ink:#1b2422; --sub:#5c6866; --line:#d5dcda; --bg:#ffffff; --panel:#f4f6f5;
+  --warn:#c2410c; --warn-soft:#fff1e8; --ok:#0b5d4b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,sans-serif;overscroll-behavior:none}
+/* タブレット：連打でズームしない・ボタンの文字が選択されない */
+button,.pbtn,.seat{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.app{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* 上段 */
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:3px solid var(--teal)}
+.modeTabs{display:flex;gap:8px}
+.modeTabs button{padding:10px 30px;border-radius:8px;background:#e6e9e8;font-weight:700;font-size:20px}
+.modeTabs button.on{background:var(--teal);color:#fff}
+.top .spacer{flex:1}
+.store{font-weight:700;color:var(--sub);font-size:14px}
+.reg{border:1.5px solid var(--teal-line);background:var(--teal-soft);border-radius:8px;padding:6px 12px;text-align:right;line-height:1.2}
+.reg small{display:block;font-size:11px;color:var(--sub)}
+.reg b{font-size:18px}
+.menuBtn{border:1.5px solid var(--line);border-radius:8px;padding:9px 14px;font-weight:700}
+.dayBadge{font-size:12px;padding:4px 8px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-weight:700}
+.dayBadge.open{background:var(--teal-soft);color:var(--teal)}
+
+/* 席 */
+.seats{display:flex;gap:10px;padding:12px 14px;align-items:stretch;overflow-x:auto}
+.seatGroup{display:flex;gap:8px;padding:6px;border-radius:12px;background:var(--teal-soft);border:2px solid var(--teal-line);position:relative}
+.seatGroup .gtotal{position:absolute;top:-10px;right:10px;background:#fff;border:1px solid var(--teal-line);border-radius:6px;font-size:11px;padding:0 6px;color:var(--teal);font-weight:700}
+.seat{min-width:78px;flex:1;height:70px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:28px;font-weight:700;position:relative}
+.seat.open::after{content:"";position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--teal-2)}
+.seat.sel{background:var(--teal);border-color:var(--teal);color:#fff}
+.seat.sel::after{background:#fff}
+.seat .amt{position:absolute;bottom:3px;left:0;right:0;font-size:11px;font-weight:500}
+.seat .gname{position:absolute;top:4px;left:6px;right:16px;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.joinBtn{min-width:78px;border:2px dashed var(--teal-line);border-radius:10px;color:var(--teal);font-weight:700;font-size:13px;line-height:1.3;background:#fff}
+.nameBar{background:#fff7ef;border:1px solid #f3dcc6}
+.nameBar .memo{font-weight:400;color:var(--sub);font-size:12px;display:block}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin:8px 0}
+.chk input{width:20px;height:20px;flex:none}
+
+/* 本体 */
+.main{flex:1;display:grid;grid-template-columns:6fr 4fr;min-height:0;border-top:1px solid var(--line)}
+.left{display:flex;flex-direction:column;min-height:0;padding:12px 14px;border-right:1px solid var(--line)}
+.cats{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cats button{padding:9px 18px;border-radius:8px;background:#e6e9e8;font-weight:700}
+.cats button.on{background:var(--teal);color:#fff}
+.grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;padding-bottom:12px}
+.pbtn{border:2px solid var(--line);border-radius:12px;background:#fff;padding:16px 8px;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.pbtn:active{background:var(--teal-soft)}
+.pbtn .n{font-size:22px;font-weight:700}
+.pbtn .u{font-size:13px;color:var(--sub)}
+.pbtn .p{font-size:24px;font-weight:700;margin-top:4px}
+.pbtn.soldout{opacity:.45}
+.pbtn.soldout .p::after{content:" 売り切れ";font-size:13px;color:var(--warn)}
+.pbtn .more{position:absolute;top:4px;right:4px;width:34px;height:34px;border-radius:8px;color:var(--sub);font-size:20px;line-height:34px}
+.pbtn .more:hover{background:#eef}
+.pbtn.alt{background:var(--teal-soft);border-color:var(--teal-line)}
+
+.right{display:flex;flex-direction:column;min-height:0;padding:12px 14px;background:#fff}
+.chkHead{background:var(--teal);color:#fff;border-radius:10px;padding:10px 14px;font-size:20px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chkHead button{background:rgba(255,255,255,.18);color:#fff;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700}
+.keepBar{margin-top:8px;background:var(--teal-soft);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.keepBar button{font-size:12px;border:1px solid var(--teal-line);background:#fff;border-radius:6px;padding:3px 8px}
+.lines{flex:1;overflow-y:auto;margin-top:6px}
+.line{display:grid;grid-template-columns:1fr auto 96px;gap:8px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);font-size:17px}
+.line button.nm{text-align:left;font-weight:500}
+.line .q{color:var(--sub)}
+.line .a{text-align:right;font-weight:700}
+.line .tag{font-size:11px;border-radius:4px;padding:1px 5px;margin-left:6px;background:#eef1f0;color:var(--sub);font-weight:700}
+.line.paid{color:#9aa5a3}
+.line .seatTag{font-size:11px;color:var(--teal);font-weight:700;margin-right:4px}
+.empty{color:var(--sub);text-align:center;padding:30px 10px;font-size:14px}
+.minBar{margin-top:8px;background:var(--teal-soft);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.minBar b{color:var(--teal);font-size:22px}
+.minBar.met b{font-size:15px}
+.payBtn{margin-top:10px;background:var(--teal);color:#fff;border-radius:10px;padding:16px;font-size:24px;font-weight:700;width:100%}
+.payBtn:disabled{background:#a9b5b2}
+.subActs{display:flex;gap:8px;margin-top:8px}
+.subActs button{flex:1;border:1.5px solid var(--line);border-radius:8px;padding:8px;font-weight:700;font-size:14px}
+
+/* 仕入れ */
+.pcLine{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);font-size:17px}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);font-weight:700;font-size:18px}
+.qty span{min-width:42px;text-align:center}
+.pcLine .price{font-size:12px;color:var(--sub);text-decoration:underline;display:block}
+.field{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:700}
+.field select,.field input{flex:1;padding:10px;border:1.5px solid var(--line);border-radius:8px;background:#fff}
+
+/* モーダル */
+.ov{position:fixed;inset:0;background:rgba(15,25,22,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+.md{background:#fff;border-radius:14px;width:min(640px,100%);max-height:92vh;overflow-y:auto;padding:20px}
+.md h2{margin:0 0 12px;font-size:20px}
+.md h3{font-size:15px;margin:18px 0 6px}
+.md .row{display:flex;gap:10px;align-items:center;margin:8px 0}
+.md label{font-size:14px;font-weight:700;min-width:120px}
+.md input,.md select{padding:10px;border:1.5px solid var(--line);border-radius:8px;flex:1;min-width:0;background:#fff}
+.md .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.btn{padding:11px 18px;border-radius:8px;font-weight:700;border:1.5px solid var(--line);background:#fff}
+.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.warn{color:var(--warn);border-color:#f3c4a8}
+.btn:disabled{opacity:.5}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl td,.tbl th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+.tbl td.r,.tbl th.r{text-align:right}
+.big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.big3 div{border:1.5px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.big3 small{display:block;color:var(--sub);font-size:12px}
+.big3 b{font-size:20px}
+.diffNeg{color:var(--warn)}
+.note{font-size:12px;color:var(--sub);line-height:1.6}
+.menuList button{display:block;width:100%;text-align:left;padding:14px 12px;border-bottom:1px solid var(--line);font-weight:700}
+.menuList button small{display:block;font-weight:400;color:var(--sub);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 16px;border-radius:8px;border:1.5px solid var(--line);font-weight:700;background:#fff}
+.chip.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1b2422;color:#fff;border-radius:10px;padding:12px 16px;display:flex;gap:16px;align-items:center;z-index:30;font-weight:500}
+.toast button{color:#7fe0c6;font-weight:700}
+
+/* 店主ビュー（縦1列） */
+.owner{max-width:440px;margin:0 auto;padding:16px;overflow-y:auto;flex:1;width:100%}
+.ocard{border:1.5px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.ocard small{color:var(--sub);font-size:12px;display:block}
+.ocard .hero{font-size:38px;font-weight:700;color:var(--teal)}
+.ocard .v{font-size:24px;font-weight:700}
+.ocard.link{cursor:pointer}
+.ocard .warnTxt{color:var(--warn);font-size:12px;font-weight:700}
+.orow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+
+/* 設定 */
+.setWrap{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.setForm{overflow-y:auto;padding:16px;border-right:1px solid var(--line)}
+.setPrev{overflow-y:auto;padding:16px;background:var(--panel)}
+.steps{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.steps button{padding:8px 12px;border-radius:20px;border:1.5px solid var(--line);font-weight:700;font-size:13px;background:#fff}
+.steps button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.setForm .row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.setForm input,.setForm select{padding:9px;border:1.5px solid var(--line);border-radius:8px;min-width:0;background:#fff}
+.setForm label{font-weight:700;font-size:14px;min-width:130px}
+.pedit{display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr auto;gap:6px;margin:6px 0}
+.pedit.sup{grid-template-columns:2fr 1fr 1fr 1fr auto}
+.pedit input,.pedit select{width:100%}
+.colHead{font-size:11px;color:var(--sub);font-weight:700}
+.prevSeats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.prevSeats span{width:46px;height:40px;border:2px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;background:#fff}
+
+@media (max-width:760px){
+  .main{grid-template-columns:1fr}
+  .setWrap{display:block;overflow-y:auto}
+  .setForm,.setPrev{overflow:visible;border-right:none}
+  .left{border-right:none;max-height:none}
+  .modeTabs button{padding:8px 16px;font-size:16px}
+  .seat{min-width:52px;height:56px;font-size:22px}
+  .grid{max-height:50vh}
+  .store{display:none}
+  .pedit,.pedit.sup{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/* ============ 基本 ============ */
+const KEY='bar_app_twd_v1';
+const CUR='NT$';
+const fmt=n=>(n<0?'−':'')+CUR+Math.abs(Math.round(n)).toLocaleString('en-US');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const now=()=>new Date().toISOString();
+const hm=iso=>{const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')};
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const monthOf=day=>day.slice(0,7);
+
+function defaults(){
+  const P=(name,price,cat,cost,extra={})=>({id:uid(),name,price,cat,cost,soldOut:false,...extra});
+  return {
+    settings:{storeName:'Bar 7席（台北）',seatCount:7,seatOrder:'1,2,3,4,5,6,7',minSpend:300,minMode:'seat',minPolicy:'notice',keepEnabled:true,firstRunDone:false,rev:2},
+    categories:['ドリンク','フード','おつまみ','ボトル'],
+    products:[
+      P('ハイボール',250,'ドリンク',45),P('生ビール',280,'ドリンク',70),
+      P('レモンサワー',220,'ドリンク',40),P('烏龍茶',120,'ドリンク',15),
+      P('ジントニック',300,'ドリンク',60),P('ウイスキー ロック',350,'ドリンク',null),
+      P('台湾ビール',180,'ドリンク',45),P('ソーダ割り（キープ用）',60,'ドリンク',10),
+      P('フライドポテト',180,'フード',40),P('唐揚げ',240,'フード',70),
+      P('ミックスナッツ',150,'おつまみ',30),P('チーズ盛り合わせ',220,'おつまみ',null),
+      P('角瓶ボトル',2600,'ボトル',650,{bottle:true}),P('山崎ボトル',6800,'ボトル',2900,{bottle:true}),
+    ],
+    supplies:[
+      {id:uid(),name:'氷',unit:'袋',price:100,stock:0},
+      {id:uid(),name:'炭酸',unit:'ケース',price:480,stock:0},
+      {id:uid(),name:'角瓶',unit:'本',price:650,stock:0},
+      {id:uid(),name:'レモン',unit:'kg',price:120,stock:0},
+      {id:uid(),name:'台湾ビール',unit:'ケース',price:1080,stock:0},
+    ],
+    groups:[],            // [[4,5,6]]
+    seatVisit:{},         // seatNo -> visitId
+    visits:[],            // {id,seat,people,day,keepId,openedAt,closedAt}
+    items:[],             // {id,visitId,productId,name,price,cost,qty,paidQty,kind,ts}
+    payments:[],          // {id,day,ts,label,lines,extra,total,tendered,change}
+    moves:[],             // {id,day,ts,type,amount,note}
+    days:[],              // {id,openedAt,openingCash,closedAt,expected,actual,diff,toSafe,nextFloat}
+    currentDay:null,
+    lastFloat:3000,
+    purchases:[],         // {id,day,ts,lines,total,source,paid,paidAt}
+    lastPurchase:[],
+    keeps:[],             // {id,name,brand,shelf,boughtAt,lastUsed,finished}
+    regulars:[],          // 常連客 {id,name,memo,firstVisit,lastVisit,visits}
+    expenses:[            // fixed: 月額を日割り
+      {id:uid(),name:'家賃',amount:45000,fixed:true,month:null},
+      {id:uid(),name:'人件費',amount:60000,fixed:true,month:null},
+    ],
+    waste:[],             // サービス・こぼれの原価 {id,day,ts,name,qty,cost,kind}
+    ui:{mode:'sales',seat:1,cat:'ドリンク',view:'main'}
+  };
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S) S=defaults();
+S.regulars=S.regulars||[];
+// 旧版の初期値（1人あたりNT$500）のままなら、1席あたりNT$300に置き換える
+if(!S.settings.rev){ if(S.settings.minMode==='person'&&S.settings.minSpend===500){S.settings.minMode='seat';S.settings.minSpend=300;} S.settings.rev=2; }
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ============ 集計 ============ */
+const seatList=()=>{
+  const n=S.settings.seatCount;
+  let order=String(S.settings.seatOrder||'').split(/[,\s]+/).map(Number).filter(x=>x>=1&&x<=n);
+  order=[...new Set(order)];
+  for(let i=1;i<=n;i++) if(!order.includes(i)) order.push(i);
+  return order;
+};
+const groupOf=seat=>S.groups.find(g=>g.includes(seat));
+const visitOf=seat=>S.visits.find(v=>v.id===S.seatVisit[seat]);
+const visitsFor=seat=>{const g=groupOf(seat);return (g||[seat]).map(visitOf).filter(Boolean)};
+const itemsOfVisits=vs=>{const ids=new Set(vs.map(v=>v.id));return S.items.filter(i=>ids.has(i.visitId))};
+const unpaidAmt=items=>items.reduce((s,i)=>s+(i.qty-i.paidQty)*i.price,0);
+const orderedAmt=items=>items.reduce((s,i)=>s+i.qty*i.price,0);
+function minInfo(seat){
+  const st=S.settings; if(st.minMode==='off'||!st.minSpend) return null;
+  const vs=visitsFor(seat); if(!vs.length) return null;
+  const people=vs.reduce((s,v)=>s+(v.people||1),0);
+  const seats=(groupOf(seat)||[seat]).length; // まとめた席はすべて数える
+  const unit=st.minMode==='seat'?seats:st.minMode==='person'?people:1;
+  const need=st.minSpend*unit;
+  const basis=st.minMode==='seat'?`${seats}席 × ${fmt(st.minSpend)}`:st.minMode==='person'?`${people}名 × ${fmt(st.minSpend)}`:'伝票ごと';
+  const got=orderedAmt(itemsOfVisits(vs).filter(i=>i.kind==='normal'));
+  return {need,got,short:Math.max(0,need-got),people,seats,basis};
+}
+const daySales=day=>S.payments.filter(p=>p.day===day).reduce((s,p)=>s+p.total,0);
+const regMoves=day=>S.moves.filter(m=>m.day===day);
+const regExpected=day=>regMoves(day).reduce((s,m)=>s+m.amount,0);
+function costOfPayments(pays){
+  let cost=0,missing=0;
+  pays.forEach(p=>p.lines.forEach(l=>{ if(l.cost==null) missing+=l.qty; else cost+=l.cost*l.qty; }));
+  return {cost,missing};
+}
+function monthStats(month,uptoDay){
+  const pays=S.payments.filter(p=>monthOf(p.day)===month);
+  const sales=pays.reduce((s,p)=>s+p.total,0);
+  const {cost,missing}=costOfPayments(pays);
+  const waste=S.waste.filter(w=>monthOf(w.day)===month).reduce((s,w)=>s+(w.cost||0)*w.qty,0);
+  const [y,m]=month.split('-').map(Number);
+  const dim=new Date(y,m,0).getDate();
+  const d=uptoDay?Number(uptoDay.slice(8,10)):dim;
+  const fixed=S.expenses.filter(e=>e.fixed).reduce((s,e)=>s+e.amount,0)*d/dim;
+  const variable=S.expenses.filter(e=>!e.fixed&&e.month===month).reduce((s,e)=>s+e.amount,0);
+  const purchases=S.purchases.filter(p=>monthOf(p.day)===month).reduce((s,p)=>s+p.total,0);
+  return {sales,cost,missing,waste,fixed,variable,purchases,profit:sales-cost-waste-fixed-variable,days:d,dim};
+}
+const uncostedProducts=()=>S.products.filter(p=>p.cost==null);
+const SRC={register:'レジ現金',safe:'金庫',bank:'銀行口座',credit:'掛け',owner:'店主の立替'};
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+/* 1日分の収入・支出。仕入れは入荷日に計上し、掛けの支払いは支払日に「支払い」として別に表示する */
+function dayLedger(d){
+  const pays=S.payments.filter(p=>p.day===d);
+  const pcs=S.purchases.filter(p=>p.day===d);
+  const exps=S.expenses.filter(e=>!e.fixed&&e.day===d);
+  const payoffs=S.purchases.filter(p=>p.source==='credit'&&p.paid&&p.paidAt===d);
+  const income=sum(pays,p=>p.total),purchase=sum(pcs,p=>p.total),expense=sum(exps,e=>e.amount);
+  return {d,pays,pcs,exps,payoffs,income,purchase,expense,out:purchase+expense,net:income-purchase-expense,close:S.days.find(x=>x.id===d)};
+}
+function ledgerDays(month){
+  const set=new Set();
+  S.payments.forEach(p=>set.add(p.day));S.purchases.forEach(p=>{set.add(p.day);if(p.paidAt)set.add(p.paidAt)});
+  S.expenses.forEach(e=>{if(e.day)set.add(e.day)});S.days.forEach(d=>set.add(d.id));
+  return [...set].filter(d=>d&&(!month||monthOf(d)===month)).sort().reverse();
+}
+
+/* ============ 共通UI ============ */
+let toastTimer;
+function toast(msg,undo){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<span>${esc(msg)}</span>`+(undo?'<button>取り消す</button>':'');
+  if(undo) t.querySelector('button').onclick=()=>{undo();t.remove();save();render();};
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.remove(),undo?5000:2500);
+}
+function modal(html,mount){
+  closeModal();
+  const ov=document.createElement('div');ov.className='ov';ov.id='ov';
+  ov.innerHTML=`<div class="md">${html}</div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)closeModal()});
+  document.body.appendChild(ov);
+  mount&&mount(ov.querySelector('.md'));
+}
+function closeModal(){document.getElementById('ov')?.remove()}
+const $=(root,sel)=>root.querySelector(sel);
+
+/* ============ 描画 ============ */
+function render(){
+  const app=document.getElementById('app');
+  if(!S.settings.firstRunDone && S.ui.view!=='settings'){S.ui.view='settings';S.ui.setStep=0;}
+  if(S.ui.view==='owner'){app.innerHTML=renderOwner();bindOwner(app);return;}
+  if(S.ui.view==='settings'){app.innerHTML=renderSettings();bindSettings(app);return;}
+  app.innerHTML=renderTop()+(S.ui.mode==='sales'?renderSales():renderPurchase());
+  bindTop(app);
+  S.ui.mode==='sales'?bindSales(app):bindPurchase(app);
+}
+
+function renderTop(){
+  const open=!!S.currentDay;
+  return `<div class="top">
+    <div class="modeTabs">
+      <button data-mode="sales" class="${S.ui.mode==='sales'?'on':''}">営業</button>
+      <button data-mode="purchase" class="${S.ui.mode==='purchase'?'on':''}">仕入れ</button>
+    </div>
+    <span class="store">${esc(S.settings.storeName)}</span>
+    <span class="dayBadge ${open?'open':''}">${open?'営業中 '+S.currentDay.slice(5).replace('-','/'):'営業前'}</span>
+    <div class="spacer"></div>
+    <button class="reg" id="regBtn"><small>レジ予定残高</small><b>${open?fmt(regExpected(S.currentDay)):'—'}</b></button>
+    <button class="menuBtn" id="menuBtn">メニュー</button>
+  </div>`;
+}
+function bindTop(app){
+  app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{S.ui.mode=b.dataset.mode;save();render();});
+  $(app,'#regBtn').onclick=openRegHistory;
+  $(app,'#menuBtn').onclick=openMenu;
+}
+
+/* ---------- 営業画面 ---------- */
+function renderSales(){
+  const seats=seatList();
+  // 席の並び。連続して同じ組の席をまとめる
+  let html='<div class="seats">',i=0;
+  while(i<seats.length){
+    const g=groupOf(seats[i]);
+    if(g){
+      const run=[];while(i<seats.length&&groupOf(seats[i])===g){run.push(seats[i]);i++;}
+      const tot=unpaidAmt(itemsOfVisits(visitsFor(run[0])));
+      html+=`<div class="seatGroup">${tot?`<span class="gtotal">組 ${fmt(tot)}</span>`:''}${run.map(s=>seatBtn(s,false)).join('')}</div>`;
+    }else{html+=seatBtn(seats[i],true);i++;}
+  }
+  html+='<button class="joinBtn" id="joinBtn">席を<br>まとめる</button></div>';
+  const cat=S.ui.cat;
+  const prods=S.products.filter(p=>p.cat===cat);
+  html+=`<div class="main"><div class="left">
+    <div class="cats">${S.categories.map(c=>`<button data-cat="${esc(c)}" class="${c===cat?'on':''}">${esc(c)}</button>`).join('')}</div>
+    <div class="grid">${prods.map(p=>`<div class="pbtn ${p.soldOut?'soldout':''}" data-p="${p.id}" role="button" tabindex="0">
+        <span class="n">${esc(p.name)}</span><span class="p">${fmt(p.price)}</span>
+        <button class="more" data-more="${p.id}" title="売り切れ・サービス・こぼれ">⋯</button></div>`).join('')||'<div class="empty">このカテゴリーの商品はまだありません</div>'}
+    </div></div>
+    <div class="right">${renderCheck()}</div></div>`;
+  return html;
+}
+function seatBtn(s,showAmt){
+  const v=visitOf(s);
+  const amt=v?unpaidAmt(itemsOfVisits([v])):0;
+  return `<button class="seat ${v?'open':''} ${S.ui.seat===s?'sel':''}" data-seat="${s}">${v&&v.guestName?`<span class="gname">${esc(v.guestName)}</span>`:''}${s}${v&&amt&&showAmt?`<span class="amt">${fmt(amt)}</span>`:''}</button>`;
+}
+function renderCheck(){
+  const seat=S.ui.seat;const g=groupOf(seat);
+  const vs=visitsFor(seat);const items=itemsOfVisits(vs).filter(i=>i.qty>0);
+  const title=g?`${g.join('・')}番席の伝票`:`${seat}番席の伝票`;
+  const keep=vs.map(v=>S.keeps.find(k=>k.id===v.keepId)).filter(Boolean);
+  const unpaid=unpaidAmt(items);
+  const mi=minInfo(seat);
+  let h=`<div class="chkHead"><span>${title}</span><span>${vs.length?`<button id="peopleBtn">${vs.reduce((s,v)=>s+(v.people||1),0)}名</button> `:''}<button id="seatOps">席の操作</button></span></div>`;
+  const named=vs.filter(v=>v.guestName);
+  const mine=visitOf(seat);
+  h+=`<div class="keepBar nameBar"><span>${named.length?named.map(v=>{const r=S.regulars.find(x=>x.id===v.regularId);
+      return `${g?v.seat+'番 ':''}${esc(v.guestName)}さん${r?`（常連・${r.visits}回目）`:''}${r&&r.memo?`<span class="memo">${esc(r.memo)}</span>`:''}`}).join('<br>'):'<span style="color:var(--sub)">名前なし</span>'}</span>
+    <button id="nameBtn">${mine&&mine.guestName?'名前を変える':'名前を書く'}</button></div>`;
+  if(S.settings.keepEnabled){
+    h+=keep.length?keep.map(k=>`<div class="keepBar"><span>${esc(k.name)}さん・${esc(k.brand)}・棚${esc(k.shelf)}</span><span><button data-finish="${k.id}">飲み切り</button> <button data-unkeep="${k.id}">外す</button></span></div>`).join('')
+      :`<div class="keepBar" style="background:#f4f6f5;color:var(--sub)"><span>キープなし</span><button id="keepPick">キープを選ぶ</button></div>`;
+  }
+  h+='<div class="lines">';
+  if(!items.length) h+=`<div class="empty">${vs.length?'商品を押すと注文が入ります':'商品を押すと席が開きます'}</div>`;
+  items.forEach(it=>{
+    const v=S.visits.find(x=>x.id===it.visitId);
+    const rem=it.qty-it.paidQty;
+    const tag=it.kind==='service'?'<span class="tag">サービス</span>':'';
+    h+=`<div class="line ${rem===0?'paid':''}"><button class="nm" data-again="${it.id}" title="もう一杯">${g?`<span class="seatTag">${v.seat}</span>`:''}${esc(it.name)}${tag}${it.paidQty?`<span class="tag">精算済${it.paidQty}</span>`:''}</button>
+      <span class="q">×${it.qty}</span><span class="a">${fmt(it.qty*it.price)}</span></div>`;
+  });
+  h+='</div>';
+  if(mi&&vs.length) h+= `<div class="minBar ${mi.short>0?'':'met'}"><span>最低利用額 ${fmt(mi.need)}<small style="display:block;color:var(--sub);font-size:11px">${mi.basis}</small></span><b>${mi.short>0?'あと'+fmt(mi.short):'達成'}</b></div>`;
+  h+=`<button class="payBtn" id="payBtn" ${unpaid>0?'':'disabled'}>会計する　${fmt(unpaid)}</button>`;
+  h+=`<div class="note" style="margin-top:6px">明細の商品名を押すと「もう一杯」を追加します。</div>`;
+  return h;
+}
+function bindSales(app){
+  app.querySelectorAll('[data-seat]').forEach(b=>b.onclick=()=>{S.ui.seat=+b.dataset.seat;save();render();});
+  app.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{S.ui.cat=b.dataset.cat;save();render();});
+  app.querySelectorAll('[data-p]').forEach(b=>b.onclick=e=>{if(e.target.closest('[data-more]'))return;addProduct(b.dataset.p);});
+  app.querySelectorAll('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();productOps(b.dataset.more);});
+  app.querySelectorAll('[data-again]').forEach(b=>b.onclick=()=>{const it=S.items.find(i=>i.id===b.dataset.again);addProduct(it.productId,{visitId:it.visitId,kind:it.kind});});
+  app.querySelectorAll('[data-finish]').forEach(b=>b.onclick=()=>{const k=S.keeps.find(x=>x.id===b.dataset.finish);if(confirm(`${k.name}さんの${k.brand}を「飲み切り」にしますか`)){k.finished=true;S.visits.forEach(v=>{if(v.keepId===k.id)v.keepId=null});save();render();}});
+  app.querySelectorAll('[data-unkeep]').forEach(b=>b.onclick=()=>{S.visits.forEach(v=>{if(v.keepId===b.dataset.unkeep&&visitsFor(S.ui.seat).includes(v))v.keepId=null});save();render();});
+  $(app,'#keepPick')&&($(app,'#keepPick').onclick=pickKeep);
+  $(app,'#peopleBtn')&&($(app,'#peopleBtn').onclick=editPeople);
+  $(app,'#seatOps').onclick=seatOps;
+  $(app,'#payBtn').onclick=openCheckout;
+  $(app,'#nameBtn').onclick=nameDialog;
+  $(app,'#joinBtn').onclick=editGroup;
+}
+
+/* 席の名前と常連客 */
+function assignRegular(r,v){
+  v.guestName=r.name;v.regularId=r.id;
+  if(r.lastVisit!==S.currentDay){r.visits=(r.visits||0)+1;r.lastVisit=S.currentDay;}
+  let msg=`${v.seat}番席に ${r.name}さん`;
+  if(S.settings.keepEnabled&&!v.keepId){
+    const k=S.keeps.find(k=>!k.finished&&(k.regularId===r.id||k.name===r.name));
+    if(k){v.keepId=k.id;k.lastUsed=S.currentDay;k.regularId=r.id;msg+=`（キープ ${k.brand}・棚${k.shelf} を表示）`;}
+  }
+  return msg;
+}
+function nameDialog(){
+  if(!ensureDay())return;
+  const seat=S.ui.seat;const cur=visitOf(seat);
+  const list=[...S.regulars].sort((a,b)=>(b.lastVisit||'').localeCompare(a.lastVisit||''));
+  modal(`<h2>${seat}番席のお客様</h2>
+    <h3>常連さんから選ぶ</h3>
+    <div class="row"><input id="q" placeholder="名前で絞り込み"></div>
+    <div class="menuList" id="rl" style="max-height:260px;overflow-y:auto"></div>
+    <h3>新しく名前を書く</h3>
+    <div class="row"><label>呼び名</label><input id="nm" placeholder="例：田中、林さん、Amy" value="${esc(cur&&!cur.regularId?cur.guestName||'':'')}"></div>
+    <label class="chk"><input type="checkbox" id="sv" checked>常連として保存する（次回は上の一覧から選べます）</label>
+    <div class="row"><label>メモ</label><input id="mm" placeholder="例：ハイボール濃いめ、タバコ吸わない"></div>
+    <div class="acts">${cur&&cur.guestName?'<button class="btn warn" id="clr">名前を消す</button>':''}<button class="btn" id="c">閉じる</button><button class="btn pri" id="ok">この名前にする</button></div>`,md=>{
+    const draw=()=>{const q=$(md,'#q').value.trim();
+      $(md,'#rl').innerHTML=list.filter(r=>!q||r.name.includes(q)).map(r=>{const k=S.keeps.find(k=>!k.finished&&(k.regularId===r.id||k.name===r.name));
+        return `<button data-r="${r.id}">${esc(r.name)}さん<small>最終来店 ${(r.lastVisit||'—').slice(0,10)}・${r.visits||0}回${k?`・キープ ${esc(k.brand)} 棚${esc(k.shelf)}`:''}${r.memo?'・'+esc(r.memo):''}</small></button>`}).join('')||'<div class="empty">保存された常連さんはまだいません</div>';
+      md.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const r=S.regulars.find(x=>x.id===b.dataset.r);const v=ensureVisit(seat);const msg=assignRegular(r,v);save();closeModal();render();toast(msg);});
+    };
+    $(md,'#q').oninput=draw;draw();
+    $(md,'#c').onclick=closeModal;
+    $(md,'#clr')&&($(md,'#clr').onclick=()=>{cur.guestName=null;cur.regularId=null;save();closeModal();render();});
+    $(md,'#ok').onclick=()=>{
+      const name=$(md,'#nm').value.trim().replace(/さん$/,'');if(!name){$(md,'#nm').focus();return;}
+      const v=ensureVisit(seat);
+      if($(md,'#sv').checked){
+        let r=S.regulars.find(x=>x.name===name);
+        if(!r){r={id:uid(),name,memo:$(md,'#mm').value.trim(),firstVisit:S.currentDay,lastVisit:null,visits:0};S.regulars.push(r);}
+        else if($(md,'#mm').value.trim()) r.memo=$(md,'#mm').value.trim();
+        const msg=assignRegular(r,v);save();closeModal();render();toast(msg+'（常連に保存）');
+      }else{v.guestName=name;v.regularId=null;save();closeModal();render();toast(`${seat}番席に ${name}さん`);}
+    };
+  });
+}
+function regularList(){
+  const list=[...S.regulars].sort((a,b)=>(b.lastVisit||'').localeCompare(a.lastVisit||''));
+  modal(`<h2>常連客一覧（${list.length}人）</h2>
+    <table class="tbl"><tr><th>呼び名</th><th>最終来店</th><th class="r">回数</th><th>メモ</th><th></th></tr>
+    ${list.map(r=>`<tr><td>${esc(r.name)}</td><td>${(r.lastVisit||'—').slice(0,10)}</td><td class="r">${r.visits||0}</td><td><input data-memo="${r.id}" value="${esc(r.memo||'')}" style="width:100%;padding:6px;border:1px solid var(--line);border-radius:6px"></td><td><button class="btn warn" data-rdel="${r.id}" style="padding:6px 10px">削除</button></td></tr>`).join('')||'<tr><td colspan="5" class="note">まだいません。営業画面の伝票の「名前を書く」から保存できます。</td></tr>'}</table>
+    <div class="acts"><button class="btn pri" id="c">閉じる</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    md.querySelectorAll('[data-memo]').forEach(i=>i.onchange=()=>{S.regulars.find(r=>r.id===i.dataset.memo).memo=i.value.trim();save();});
+    md.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=()=>{const r=S.regulars.find(x=>x.id===b.dataset.rdel);
+      if(confirm(`${r.name}さんを常連一覧から消しますか（過去の売上は消えません）`)){S.regulars=S.regulars.filter(x=>x!==r);save();closeModal();regularList();}});
+  });
+}
+function ensureDay(){
+  if(S.currentDay) return true;
+  openDayDialog();return false;
+}
+function ensureVisit(seat){
+  let v=visitOf(seat);
+  if(!v){v={id:uid(),seat,people:1,day:S.currentDay,keepId:null,openedAt:now(),closedAt:null};S.visits.push(v);S.seatVisit[seat]=v.id;}
+  return v;
+}
+function addProduct(pid,opt={}){
+  if(!ensureDay())return;
+  const p=S.products.find(x=>x.id===pid);if(!p)return;
+  if(p.soldOut&&!opt.kind){toast(`${p.name}は売り切れです`);return;}
+  const kind=opt.kind||'normal';
+  const v=opt.visitId?S.visits.find(x=>x.id===opt.visitId):ensureVisit(S.ui.seat);
+  const price=kind==='service'?0:p.price;
+  let it=S.items.find(i=>i.visitId===v.id&&i.productId===p.id&&i.kind===kind&&i.price===price);
+  if(it) it.qty++; else {it={id:uid(),visitId:v.id,productId:p.id,name:p.name,price,cost:p.cost,qty:1,paidQty:0,kind,ts:now()};S.items.push(it);}
+  if(kind==='service') S.waste.push({id:uid(),day:S.currentDay,ts:now(),name:p.name,qty:1,cost:p.cost,kind:'service',itemId:it.id});
+  const itemId=it.id,visitId=v.id,wasNew=it.qty===1;
+  save();render();
+  toast(`${v.seat}番席に ${p.name}${kind==='service'?'（サービス）':''} を追加`,()=>{
+    const x=S.items.find(i=>i.id===itemId);if(!x)return;
+    if(x.qty-x.paidQty<=0)return;
+    x.qty--; if(x.qty===0) S.items=S.items.filter(i=>i.id!==itemId);
+    if(kind==='service'){const w=[...S.waste].reverse().find(w=>w.itemId===itemId);if(w)S.waste=S.waste.filter(z=>z!==w);}
+    const vv=S.visits.find(q=>q.id===visitId);
+    if(vv&&!S.items.some(i=>i.visitId===visitId)&&wasNew&&!vv.keepId){S.visits=S.visits.filter(q=>q!==vv);delete S.seatVisit[vv.seat];}
+  });
+  if(p.bottle&&kind==='normal'&&S.settings.keepEnabled) registerKeep(p,v);
+}
+function productOps(pid){
+  const p=S.products.find(x=>x.id===pid);
+  modal(`<h2>${esc(p.name)}</h2>
+    <div class="menuList">
+      <button data-a="sold">${p.soldOut?'売り切れを解除':'売り切れにする'}<small>営業画面のボタンを無効にします</small></button>
+      <button data-a="service">サービスで出す（${S.ui.seat}番席）<small>売価0で伝票に載せ、原価は記録します</small></button>
+      <button data-a="spill">こぼれ・廃棄を記録<small>伝票には載せず、原価だけ記録します</small></button>
+    </div><div class="acts"><button class="btn" data-a="x">閉じる</button></div>`,md=>{
+    md.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a;closeModal();
+      if(a==='sold'){p.soldOut=!p.soldOut;save();render();}
+      if(a==='service') addProduct(pid,{kind:'service'});
+      if(a==='spill'){ if(!ensureDay())return; const w={id:uid(),day:S.currentDay,ts:now(),name:p.name,qty:1,cost:p.cost,kind:'spill'};S.waste.push(w);save();render();toast(`${p.name}のこぼれを記録（原価${p.cost==null?'未登録':fmt(p.cost)}）`,()=>{S.waste=S.waste.filter(x=>x!==w)});}
+    });
+  });
+}
+function editPeople(){
+  const vs=visitsFor(S.ui.seat);
+  modal(`<h2>来店人数</h2>${vs.map(v=>`<div class="row"><label>${v.seat}番席</label><input type="number" min="1" value="${v.people}" data-v="${v.id}"></div>`).join('')}
+   <p class="note">人数は客単価と最低利用額（1人あたり設定時）の計算に使います。伝票を分けても人数は増えません。</p>
+   <div class="acts"><button class="btn" id="c">閉じる</button><button class="btn pri" id="ok">保存</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{md.querySelectorAll('[data-v]').forEach(i=>{S.visits.find(v=>v.id===i.dataset.v).people=Math.max(1,+i.value||1)});save();closeModal();render();};
+  });
+}
+
+/* キープ */
+function registerKeep(p,v){
+  modal(`<h2>キープ登録：${esc(p.name)}</h2>
+    <div class="row"><label>呼び名</label><input id="kn" placeholder="例：田中" value="${esc(v.guestName||'')}"></div>
+    <div class="row"><label>棚番号</label><input id="ks" placeholder="例：2"></div>
+    <p class="note">銘柄は伝票の「${esc(p.name)}」から取ります。ボトル1本分の原価は購入時に計上し、店の棚卸しからは外します。</p>
+    <div class="acts"><button class="btn" id="c">キープにしない</button><button class="btn pri" id="ok">登録する</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{
+      const name=$(md,'#kn').value.trim();if(!name){$(md,'#kn').focus();return;}
+      const k={id:uid(),name,brand:p.name.replace(/ボトル$/,''),shelf:$(md,'#ks').value.trim()||'—',boughtAt:S.currentDay,lastUsed:S.currentDay,finished:false,regularId:v.guestName===name?v.regularId||null:null};
+      S.keeps.push(k);v.keepId=k.id;save();closeModal();render();
+    };
+  });
+}
+function pickKeep(){
+  if(!ensureDay())return;
+  const list=S.keeps.filter(k=>!k.finished).sort((a,b)=>(b.lastUsed||'').localeCompare(a.lastUsed||''));
+  modal(`<h2>キープを選ぶ</h2>
+    <div class="row"><input id="q" placeholder="名前で絞り込み"></div>
+    <div class="menuList" id="kl"></div>
+    <p class="note">新しく入れる場合は「ボトル」カテゴリーの商品を押してください。</p>
+    <div class="acts"><button class="btn" id="c">閉じる</button></div>`,md=>{
+    const draw=()=>{const q=$(md,'#q').value.trim();
+      $(md,'#kl').innerHTML=list.filter(k=>!q||k.name.includes(q)).map(k=>`<button data-k="${k.id}">${esc(k.name)}さん・${esc(k.brand)}・棚${esc(k.shelf)}<small>最終利用 ${k.lastUsed||'—'}</small></button>`).join('')||'<div class="empty">該当するキープはありません</div>';
+      md.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{
+        const k=S.keeps.find(x=>x.id===b.dataset.k);const v=ensureVisit(S.ui.seat);
+        v.keepId=k.id;k.lastUsed=S.currentDay;save();closeModal();render();
+        toast(`${k.name}さんのキープを伝票に表示しました。割り材だけ注文してください`);
+      });};
+    $(md,'#q').oninput=draw;draw();$(md,'#c').onclick=closeModal;
+  });
+}
+
+/* 席の操作 */
+function seatOps(){
+  const seat=S.ui.seat;const g=groupOf(seat);const v=visitOf(seat);
+  modal(`<h2>${seat}番席の操作</h2><div class="menuList">
+    <button data-a="move" ${v?'':'disabled'}>席移動<small>この席の伝票を空いている席へ移します</small></button>
+    <button data-a="group">${g?'グループを編集':'グループにする（まとめ払い）'}<small>同じ組の席をつなぎ、合計を1か所に表示します</small></button>
+    ${g?'<button data-a="ungroup">グループを解除<small>伝票は席ごとに戻ります</small></button>':''}
+    <button data-a="split" ${v?'':'disabled'}>個別会計<small>明細を選んで一部だけ精算します。残りの伝票は継続します</small></button>
+    <button data-a="clear" ${v&&!unpaidAmt(itemsOfVisits([v]))?'':'disabled'}>席を空ける<small>未会計がない席だけ空けられます</small></button>
+  </div><div class="acts"><button class="btn" data-a="x">閉じる</button></div>`,md=>{
+    md.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a;closeModal();
+      if(a==='move')moveSeat();
+      if(a==='group')editGroup();
+      if(a==='ungroup'){S.groups=S.groups.filter(x=>x!==g);save();render();}
+      if(a==='split')openCheckout(true);
+      if(a==='clear'){closeVisit(v);save();render();}
+    });
+  });
+}
+function moveSeat(){
+  const from=S.ui.seat;const empty=seatList().filter(s=>!visitOf(s));
+  modal(`<h2>${from}番席から移動</h2><div class="chips">${empty.map(s=>`<button class="chip" data-s="${s}">${s}番席</button>`).join('')||'空いている席がありません'}</div>
+   <div class="acts"><button class="btn" id="c">閉じる</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    md.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{
+      const to=+b.dataset.s;const v=visitOf(from);
+      v.seat=to;S.seatVisit[to]=v.id;delete S.seatVisit[from];S.ui.seat=to;save();closeModal();render();toast(`${from}番席 → ${to}番席に移動しました`);
+    });
+  });
+}
+function editGroup(){
+  const cur=groupOf(S.ui.seat)||[S.ui.seat];const sel=new Set(cur);
+  modal(`<h2>席をまとめる</h2><p class="note">一緒に来た組の席を押して選びます（例：1と2）。まとめた席は1枚の伝票になり、会計は組の合計で行います。1人だけ先に払う場合は「席の操作 → 個別会計」を使います。</p>
+    <div class="chips" id="ch"></div>
+    ${S.groups.length?`<h3>今まとめている席</h3>${S.groups.map((g,i)=>`<div class="row"><span style="flex:1;font-weight:700">${g.join('・')}番席</span><button class="btn warn" data-ug="${i}">まとめを解除</button></div>`).join('')}`:''}
+    <div class="acts"><button class="btn" id="c">閉じる</button><button class="btn pri" id="ok">この席をまとめる</button></div>`,md=>{
+    md.querySelectorAll('[data-ug]').forEach(b=>b.onclick=()=>{S.groups.splice(+b.dataset.ug,1);save();closeModal();render();toast('まとめを解除しました。伝票は席ごとに戻ります');});
+    const draw=()=>{$(md,'#ch').innerHTML=seatList().map(s=>`<button class="chip ${sel.has(s)?'on':''}" data-s="${s}">${s}</button>`).join('');
+      md.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const s=+b.dataset.s;sel.has(s)?sel.delete(s):sel.add(s);draw();});};
+    draw();$(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{
+      const arr=seatList().filter(s=>sel.has(s));
+      S.groups=S.groups.map(g=>g.filter(s=>!sel.has(s))).filter(g=>g.length>1);
+      const old=groupOf(S.ui.seat); if(old) S.groups=S.groups.filter(g=>g!==old);
+      if(arr.length>1) S.groups.push(arr);
+      save();closeModal();render();
+    };
+  });
+}
+function closeVisit(v){
+  if(!v)return;v.closedAt=now();delete S.seatVisit[v.seat];
+}
+
+/* 会計 */
+function openCheckout(split){
+  if(!ensureDay())return;
+  const seat=S.ui.seat;const vs=visitsFor(seat);
+  const items=itemsOfVisits(vs).filter(i=>i.qty-i.paidQty>0);
+  if(!items.length)return;
+  const sel={};items.forEach(i=>sel[i.id]=split===true?0:i.qty-i.paidQty);
+  const payId=uid(); // 二重確定防止のため、画面を開いた時点でIDを固定
+  const g=groupOf(seat);const names=vs.map(v=>v.guestName).filter(Boolean);
+  const label=(g?`${g.join('・')}番席`:`${seat}番席`)+(names.length?`（${names.join('・')}さん）`:'');
+  modal(`<h2>${label}の会計</h2>
+    <table class="tbl" id="tb"></table>
+    <div id="minRow"></div>
+    <div class="row" style="margin-top:14px"><label>預かり額（任意）</label><input id="tend" type="number" inputmode="numeric" placeholder="例：1000"></div>
+    <div class="big3" id="b3"></div>
+    <p class="note">支払い方法は現金のみです。預かり額を空欄にしても会計額だけレジに加算します。</p>
+    <div class="acts"><button class="btn" id="c">戻る</button><button class="btn pri" id="ok">現金を受け取り確定</button></div>`,md=>{
+    const calc=()=>{
+      let sub=0;items.forEach(i=>sub+=sel[i.id]*i.price);
+      const allPaid=items.every(i=>sel[i.id]===i.qty-i.paidQty);
+      const mi=minInfo(seat);let extra=0;
+      if(mi&&mi.short>0&&allPaid&&S.settings.minPolicy==='charge') extra=mi.short;
+      return {sub,extra,total:sub+extra,allPaid,mi};
+    };
+    const draw=()=>{
+      $(md,'#tb').innerHTML='<tr><th>明細</th><th class="r">単価</th><th class="r">精算する数</th><th class="r">金額</th></tr>'+items.map(i=>{const rem=i.qty-i.paidQty;const vv=S.visits.find(x=>x.id===i.visitId);
+        return `<tr><td>${g?vv.seat+'番 ':''}${esc(i.name)}</td><td class="r">${fmt(i.price)}</td><td class="r"><span class="qty" style="justify-content:flex-end"><button data-d="${i.id}">−</button><span>${sel[i.id]}/${rem}</span><button data-u="${i.id}">＋</button></span></td><td class="r">${fmt(sel[i.id]*i.price)}</td></tr>`}).join('');
+      const c=calc();
+      $(md,'#minRow').innerHTML=c.mi&&c.mi.short>0?(c.allPaid?(S.settings.minPolicy==='charge'?`<p class="note" style="color:var(--warn);font-weight:700">最低利用額（${fmt(c.mi.need)}）に${fmt(c.mi.short)}足りないため、差額を加算しています</p>`:`<p class="note" style="color:var(--warn);font-weight:700">最低利用額（${fmt(c.mi.need)}）まであと${fmt(c.mi.short)}です（店舗設定：表示のみ）</p>`):''):'';
+      const t=+$(md,'#tend').value||0;
+      $(md,'#b3').innerHTML=`<div><small>会計額</small><b>${fmt(c.total)}</b></div><div><small>預かり</small><b>${t?fmt(t):'—'}</b></div><div><small>お釣り</small><b class="${t&&t<c.total?'diffNeg':''}">${t?(t<c.total?'不足 '+fmt(c.total-t):fmt(t-c.total)):'—'}</b></div>`;
+      $(md,'#ok').disabled=c.total<=0||(t>0&&t<c.total);
+      md.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{sel[b.dataset.d]=Math.max(0,sel[b.dataset.d]-1);draw();});
+      md.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{const i=items.find(x=>x.id===b.dataset.u);sel[i.id]=Math.min(i.qty-i.paidQty,sel[i.id]+1);draw();});
+    };
+    $(md,'#tend').oninput=draw;draw();
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{
+      if(S.payments.some(p=>p.id===payId)){closeModal();return;}
+      $(md,'#ok').disabled=true;
+      const c=calc();const t=+$(md,'#tend').value||0;
+      const lines=items.filter(i=>sel[i.id]>0).map(i=>({itemId:i.id,name:i.name,qty:sel[i.id],price:i.price,cost:i.cost}));
+      lines.forEach(l=>{S.items.find(i=>i.id===l.itemId).paidQty+=l.qty;});
+      const pay={id:payId,day:S.currentDay,ts:now(),label,lines,extra:c.extra,total:c.total,tendered:t||null,change:t?t-c.total:null,people:c.allPaid?vs.reduce((s,v)=>s+v.people,0):0};
+      S.payments.push(pay);
+      S.moves.push({id:uid(),day:S.currentDay,ts:pay.ts,type:'sale',amount:c.total,note:`${label} 会計`,ref:payId});
+      if(c.allPaid){vs.forEach(closeVisit);if(g)S.groups=S.groups.filter(x=>x!==g);}
+      save();closeModal();render();
+      toast(`${label} ${fmt(c.total)} を確定しました${t?`（お釣り ${fmt(t-c.total)}）`:''}${c.allPaid?'':'。残りの伝票は継続します'}`);
+    };
+  });
+}
+
+/* ---------- 仕入れ画面 ---------- */
+let cart=[]; // {supplyId,qty,price,priceMode}
+let cartSource='register';
+function renderPurchase(){
+  const total=cart.reduce((s,l)=>s+l.qty*l.price,0);
+  const payables=S.purchases.filter(p=>!p.paid);
+  return `<div class="main"><div class="left">
+    <div class="grid" style="margin-top:4px">${S.supplies.map(s=>`<button class="pbtn" data-sup="${s.id}"><span class="n">${esc(s.name)}</span><span class="u">1${esc(s.unit)}</span><span class="p">${fmt(s.price)}</span></button>`).join('')}
+      <button class="pbtn alt" id="samePc" ${S.lastPurchase.length?'':'disabled'}><span class="n" style="font-size:20px">前回と同じ<br>仕入れ</span></button>
+    </div></div>
+    <div class="right">
+      <div class="chkHead"><span>今回の仕入れ</span>${payables.length?`<button id="payables">未払い ${payables.length}件</button>`:''}</div>
+      <div class="lines">${cart.length?cart.map((l,ix)=>{const s=S.supplies.find(x=>x.id===l.supplyId);return `<div class="pcLine"><span>${esc(s.name)}<button class="price" data-pr="${ix}">単価 ${fmt(l.price)}${l.priceMode==='once'?'（今回だけ）':''}</button></span>
+        <span class="qty"><button data-m="${ix}">−</button><span>${l.qty}${esc(s.unit)}</span><button data-pl="${ix}">＋</button></span><b style="min-width:90px;text-align:right">${fmt(l.qty*l.price)}</b></div>`}).join(''):'<div class="empty">品目を押すと今回の仕入れに追加されます</div>'}</div>
+      <div class="field">支払元<select id="src">
+        ${[['register','レジ現金'],['safe','金庫'],['bank','銀行口座'],['credit','掛け（後払い）']].map(([v,t])=>`<option value="${v}" ${cartSource===v?'selected':''}>${t}</option>`).join('')}
+      </select></div>
+      <button class="payBtn" id="pcOk" ${total>0?'':'disabled'}>仕入れを登録　${fmt(total)}</button>
+    </div></div>`;
+}
+function bindPurchase(app){
+  app.querySelectorAll('[data-sup]').forEach(b=>b.onclick=()=>{const s=S.supplies.find(x=>x.id===b.dataset.sup);const l=cart.find(c=>c.supplyId===s.id);l?l.qty++:cart.push({supplyId:s.id,qty:1,price:s.price,priceMode:'normal'});render();});
+  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const l=cart[b.dataset.m];l.qty--;if(l.qty<=0)cart.splice(b.dataset.m,1);render();});
+  app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{cart[b.dataset.pl].qty++;render();});
+  app.querySelectorAll('[data-pr]').forEach(b=>b.onclick=()=>changePrice(+b.dataset.pr));
+  $(app,'#samePc').onclick=()=>{cart=S.lastPurchase.map(l=>({...l,price:(S.supplies.find(s=>s.id===l.supplyId)||{}).price??l.price,priceMode:'normal'})).filter(l=>S.supplies.some(s=>s.id===l.supplyId));render();};
+  $(app,'#src').onchange=e=>cartSource=e.target.value;
+  $(app,'#payables')&&($(app,'#payables').onclick=openPayables);
+  $(app,'#pcOk').onclick=e=>{
+    if(cartSource==='register'&&!ensureDay())return;
+    e.target.disabled=true;
+    const day=S.currentDay||ymd(new Date());
+    const lines=cart.map(l=>{const s=S.supplies.find(x=>x.id===l.supplyId);s.stock+=l.qty;return {supplyId:s.id,name:s.name,unit:s.unit,qty:l.qty,price:l.price}});
+    const total=lines.reduce((a,l)=>a+l.qty*l.price,0);
+    const pc={id:uid(),day,ts:now(),lines,total,source:cartSource,paid:cartSource!=='credit',paidAt:cartSource!=='credit'?day:null};
+    S.purchases.push(pc);
+    if(cartSource==='register') S.moves.push({id:uid(),day,ts:pc.ts,type:'purchase',amount:-total,note:'仕入れ '+lines.map(l=>l.name+l.qty+l.unit).join('・'),ref:pc.id});
+    S.lastPurchase=cart.map(l=>({supplyId:l.supplyId,qty:l.qty,price:l.price}));
+    const src={register:'レジ現金から出金',safe:'金庫から支払い',bank:'銀行口座から支払い',credit:'未払いとして記録'}[cartSource];
+    cart=[];save();render();
+    toast(`入荷 ${lines.map(l=>l.name+l.qty+l.unit).join('・')}／仕入れ ${fmt(total)}／${src}`);
+  };
+}
+function changePrice(ix){
+  const l=cart[ix];const s=S.supplies.find(x=>x.id===l.supplyId);
+  modal(`<h2>${esc(s.name)}の単価</h2><div class="row"><label>今回の単価</label><input id="p" type="number" value="${l.price}"></div>
+    <div class="acts"><button class="btn" id="c">閉じる</button><button class="btn" id="once">今回だけ</button><button class="btn pri" id="normal">今後の通常価格を変更</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    $(md,'#once').onclick=()=>{l.price=+$(md,'#p').value||0;l.priceMode='once';closeModal();render();};
+    $(md,'#normal').onclick=()=>{l.price=+$(md,'#p').value||0;s.price=l.price;l.priceMode='normal';save();closeModal();render();};
+  });
+}
+function openPayables(){
+  const list=S.purchases.filter(p=>!p.paid);
+  modal(`<h2>未払いの仕入れ（掛け）</h2><table class="tbl">${list.map(p=>`<tr><td>${p.day}<br><span class="note">${esc(p.lines.map(l=>l.name+l.qty+l.unit).join('・'))}</span></td><td class="r">${fmt(p.total)}</td><td class="r"><select data-src="${p.id}"><option value="bank">銀行振込</option><option value="safe">金庫</option><option value="register">レジ現金</option></select><button class="btn" data-pay="${p.id}" style="margin-top:4px">支払いを登録</button></td></tr>`).join('')}</table>
+   <p class="note">入荷と原価は登録済みです。ここでは支払いだけを記録します。</p><div class="acts"><button class="btn" id="c">閉じる</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    md.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{
+      const p=S.purchases.find(x=>x.id===b.dataset.pay);const src=md.querySelector(`[data-src="${p.id}"]`).value;
+      if(src==='register'&&!S.currentDay){toast('レジ現金で払うには営業開始が必要です');return;}
+      p.paid=true;p.paidAt=S.currentDay||ymd(new Date());p.paidFrom=src;
+      if(src==='register')S.moves.push({id:uid(),day:S.currentDay,ts:now(),type:'purchase',amount:-p.total,note:'掛け仕入れの支払い',ref:p.id});
+      save();closeModal();render();toast('支払いを登録しました');
+    });
+  });
+}
+
+/* ---------- レジ現金 ---------- */
+function openRegHistory(){
+  if(!S.currentDay){openDayDialog();return;}
+  const ms=regMoves(S.currentDay);let bal=0;
+  const lab={open:'開店時の実額',sale:'会計',refill:'釣銭補充',collect:'金庫へ回収',purchase:'現金払い（仕入れ）',expense:'現金払い（経費）',refund:'返金'};
+  modal(`<h2>レジ予定残高 ${fmt(regExpected(S.currentDay))}</h2>
+   <table class="tbl"><tr><th>時刻</th><th>内容</th><th class="r">金額</th><th class="r">残高</th></tr>
+   ${ms.map(m=>{bal+=m.amount;return `<tr><td>${hm(m.ts)}</td><td>${lab[m.type]||m.type}<br><span class="note">${esc(m.note||'')}</span></td><td class="r">${m.type==='open'?fmt(m.amount):(m.amount>=0?'+':'')+fmt(m.amount)}</td><td class="r">${fmt(bal)}</td></tr>`}).join('')}</table>
+   <p class="note">未会計の注文は残高に含めていません。</p>
+   <div class="acts"><button class="btn" id="mv">釣銭補充・回収・経費払い</button><button class="btn pri" id="c">閉じる</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;$(md,'#mv').onclick=cashMove;
+  });
+}
+function cashMove(){
+  modal(`<h2>現金の移動を記録</h2>
+   <div class="chips" id="t">${[['refill','釣銭補充（金庫→レジ）'],['collect','回収（レジ→金庫）'],['expense','経費を現金で払う']].map(([v,t],i)=>`<button class="chip ${i==0?'on':''}" data-t="${v}">${t}</button>`).join('')}</div>
+   <div class="row"><label>金額</label><input id="a" type="number" inputmode="numeric"></div>
+   <div class="row"><label>メモ</label><input id="n" placeholder="例：レモン追加購入"></div>
+   <div class="acts"><button class="btn" id="c">閉じる</button><button class="btn pri" id="ok">記録する</button></div>`,md=>{
+    let t='refill';md.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{t=b.dataset.t;md.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));});
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{const a=+$(md,'#a').value;if(!a)return;
+      const note=$(md,'#n').value.trim();
+      S.moves.push({id:uid(),day:S.currentDay,ts:now(),type:t,amount:t==='refill'?a:-a,note});
+      if(t==='expense')S.expenses.push({id:uid(),name:note||'現金経費',amount:a,fixed:false,month:monthOf(S.currentDay),day:S.currentDay,source:'register'});
+      save();closeModal();render();toast('記録しました');};
+  });
+}
+function openDayDialog(){
+  if(S.currentDay){toast('すでに営業中です');return;}
+  modal(`<h2>営業開始</h2>
+   <p>レジ内の現金を数えて入力してください。前回から残した釣銭は <b>${fmt(S.lastFloat)}</b> です。</p>
+   <div class="row"><label>開店時の実額</label><input id="a" type="number" inputmode="numeric" value="${S.lastFloat}"></div>
+   <p class="note">営業日は開始した日付で記録します。深夜0時をまたいでも閉店までは同じ営業日です。</p>
+   <div class="acts"><button class="btn" id="c">あとで</button><button class="btn pri" id="ok">営業開始</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{
+      let id=ymd(new Date());
+      while(S.days.some(d=>d.id===id)) id=id.length===10?id+'-2':id.replace(/-(\d+)$/,(m,n)=>'-'+(+n+1));
+      const a=+$(md,'#a').value||0;
+      S.days.push({id,openedAt:now(),openingCash:a});S.currentDay=id;
+      S.moves.push({id:uid(),day:id,ts:now(),type:'open',amount:a,note:''});
+      save();closeModal();render();toast('営業を開始しました');
+    };
+  });
+}
+function closeDayDialog(){
+  if(!S.currentDay){toast('営業前です');return;}
+  const open=seatList().filter(s=>visitOf(s)&&unpaidAmt(itemsOfVisits([visitOf(s)]))>0);
+  const exp=regExpected(S.currentDay);
+  modal(`<h2>閉店・レジ締め</h2>
+   ${open.length?`<p style="color:var(--warn);font-weight:700">未会計の席があります：${open.join('・')}番席（${fmt(open.reduce((s,x)=>s+unpaidAmt(itemsOfVisits([visitOf(x)])),0))}）</p>`:'<p class="note">未会計の伝票はありません。</p>'}
+   <div class="row"><label>実際のレジ現金</label><input id="act" type="number" inputmode="numeric" placeholder="金庫へ移す前に数えた額"></div>
+   <div class="big3" id="b3"></div>
+   <div class="row"><label>翌日の釣銭</label><input id="fl" type="number" value="${S.lastFloat}"></div>
+   <p class="note" id="safeNote"></p>
+   <div class="acts"><button class="btn" id="c">戻る</button><button class="btn pri" id="ok" disabled>締めを確定</button></div>`,md=>{
+    const draw=()=>{const a=$(md,'#act').value;const d=a===''?null:+a-exp;
+      $(md,'#b3').innerHTML=`<div><small>予定額</small><b>${fmt(exp)}</b></div><div><small>実額</small><b>${a===''?'—':fmt(+a)}</b></div><div><small>差額</small><b class="${d<0?'diffNeg':''}">${d==null?'—':(d===0?'±'+CUR+'0':(d>0?'+':'')+fmt(d)+(d<0?'（不足）':'（過剰）'))}</b></div>`;
+      const fl=+$(md,'#fl').value||0;
+      $(md,'#safeNote').textContent=a===''?'':`金庫へ移す額：${fmt(Math.max(0,+a-fl))}（翌日の釣銭 ${fmt(fl)} を残す）`;
+      $(md,'#ok').disabled=a==='';};
+    $(md,'#act').oninput=draw;$(md,'#fl').oninput=draw;draw();
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{
+      if(open.length&&!confirm('未会計の席が残っています。未会計のまま締めますか（伝票は翌営業日に持ち越します）'))return;
+      const a=+$(md,'#act').value;const fl=+$(md,'#fl').value||0;const day=S.days.find(d=>d.id===S.currentDay);
+      const lg=dayLedger(day.id);
+      Object.assign(day,{closedAt:now(),expected:exp,actual:a,diff:a-exp,toSafe:Math.max(0,a-fl),nextFloat:fl,sales:daySales(day.id),
+        summary:{income:lg.income,purchase:lg.purchase,expense:lg.expense,net:lg.net,count:lg.pays.length}});
+      S.lastFloat=fl;S.currentDay=null;save();closeModal();render();
+      showDayReport(day.id);
+    };
+  });
+}
+function showDayReport(id){
+  const d=S.days.find(x=>x.id===id);const pays=S.payments.filter(p=>p.day===id);
+  const people=pays.reduce((s,p)=>s+(p.people||0),0);const lg=dayLedger(id);
+  modal(`<h2>日報 ${id}</h2>
+    <table class="tbl">
+     <tr><td>売上（収入）</td><td class="r"><b>${fmt(daySales(id))}</b></td></tr>
+     <tr><td>仕入れ</td><td class="r">${fmt(lg.purchase)}</td></tr>
+     <tr><td>経費</td><td class="r">${fmt(lg.expense)}</td></tr>
+     <tr><td><b>この日の差引</b></td><td class="r"><b class="${lg.net<0?'diffNeg':''}">${fmt(lg.net)}</b></td></tr>
+     <tr><td>会計件数／来店人数</td><td class="r">${pays.length}件／${people}名</td></tr>
+     <tr><td>客単価</td><td class="r">${people?fmt(daySales(id)/people):'—'}</td></tr>
+     <tr><td>開店時の実額</td><td class="r">${fmt(d.openingCash)}</td></tr>
+     <tr><td>予定額／実額</td><td class="r">${fmt(d.expected)}／${fmt(d.actual)}</td></tr>
+     <tr><td>差額</td><td class="r ${d.diff<0?'diffNeg':''}">${d.diff>0?'+':''}${fmt(d.diff)}</td></tr>
+     <tr><td>金庫へ移した額</td><td class="r">${fmt(d.toSafe)}</td></tr>
+     <tr><td>翌日の釣銭</td><td class="r">${fmt(d.nextFloat)}</td></tr>
+    </table><p class="note">この日報は店主ビューの「日別の収支」からいつでも見返せます。</p><div class="acts"><button class="btn pri" id="c">閉じる</button></div>`,md=>$(md,'#c').onclick=closeModal);
+}
+function exportLedgerCsv(){
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[['日付','区分','内容','支払元・相手','金額（NT$）']];
+  const days=ledgerDays(null).slice().reverse();
+  days.forEach(d=>{const lg=dayLedger(d);
+    lg.pays.forEach(p=>rows.push([d,'収入','売上 '+p.label+'（'+p.lines.map(l=>l.name+'×'+l.qty).join('・')+(p.extra?'・最低利用額差額':'')+'）','現金',p.total]));
+    lg.pcs.forEach(p=>rows.push([d,'支出','仕入れ '+p.lines.map(l=>l.name+l.qty+l.unit).join('・'),SRC[p.source],-p.total]));
+    lg.exps.forEach(e=>rows.push([d,'支出','経費 '+e.name,SRC[e.source]||'',-e.amount]));
+    lg.payoffs.forEach(p=>rows.push([d,'支払い（掛け）','掛け仕入れの支払い（入荷日 '+p.day+'）',SRC[p.paidFrom]||p.paidFrom,-p.total]));
+    if(lg.close&&lg.close.closedAt) rows.push([d,'レジ締め','予定 '+lg.close.expected+'／実額 '+lg.close.actual+'／金庫へ '+lg.close.toSafe,'',lg.close.diff]);
+  });
+  rows.push([]);rows.push(['日付','収入','仕入れ','経費','差引','レジ差額']);
+  days.forEach(d=>{const lg=dayLedger(d);rows.push([d,lg.income,lg.purchase,lg.expense,lg.net,lg.close&&lg.close.closedAt?lg.close.diff:''])});
+  const csv='﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n');
+  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));const l=document.createElement('a');l.href=u;l.download='日別収支_'+ymd(new Date())+'.csv';l.click();
+}
+
+/* ---------- メニュー ---------- */
+function openMenu(){
+  modal(`<h2>メニュー</h2><div class="menuList">
+    ${S.currentDay?'<button data-a="close">閉店・レジ締め<small>実際の現金を入力して差額を確認し、日報を作ります</small></button>':'<button data-a="open">営業開始<small>開店時のレジ現金を確定します</small></button>'}
+    <button data-a="owner">店主ビュー（売上・利益）<small>スマホ向けの縦1列表示</small></button>
+    <button data-a="regulars">常連客一覧<small>呼び名・最終来店日・来店回数・メモ</small></button>
+    <button data-a="keeps">キープ一覧<small>呼び名・銘柄・棚・最終利用日</small></button>
+    <button data-a="stock">在庫・棚卸し<small>入荷数の累計と月末の実在庫入力</small></button>
+    <button data-a="settings">店舗設定<small>席・販売メニュー・仕入れ品・店舗ルール</small></button>
+    <button data-a="csv">日別の収支をCSVで書き出す<small>Excelで開けます。収入・仕入れ・経費・レジ締めを1行ずつ出します</small></button>
+    <button data-a="export">全データを書き出す（JSON・控え用）</button>
+    <button data-a="reset" style="color:var(--warn)">すべてのデータを消して初期状態に戻す</button>
+  </div><div class="acts"><button class="btn" data-a="x">閉じる</button></div>`,md=>{
+    md.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;closeModal();
+      if(a==='open')openDayDialog(); if(a==='close')closeDayDialog();
+      if(a==='owner'){S.ui.view='owner';S.ui.ownerPage='home';save();render();}
+      if(a==='settings'){S.ui.view='settings';S.ui.setStep=0;save();render();}
+      if(a==='regulars')regularList(); if(a==='keeps')keepList(); if(a==='stock')stockView(); if(a==='csv')exportLedgerCsv();
+      if(a==='export'){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const l=document.createElement('a');l.href=u;l.download='bar_data_'+ymd(new Date())+'.json';l.click();}
+      if(a==='reset'&&confirm('すべての売上・仕入れ・設定を消します。元に戻せません。よろしいですか')){S=defaults();cart=[];save();render();}
+    });
+  });
+}
+function keepList(){
+  modal(`<h2>キープ一覧</h2><table class="tbl"><tr><th>呼び名</th><th>銘柄</th><th>棚</th><th>最終利用</th><th>状態</th></tr>
+   ${S.keeps.map(k=>`<tr><td>${esc(k.name)}</td><td>${esc(k.brand)}</td><td>${esc(k.shelf)}</td><td>${k.lastUsed||'—'}</td><td>${k.finished?'飲み切り':'保管中'}</td></tr>`).join('')||'<tr><td colspan="5" class="note">まだありません</td></tr>'}</table>
+   <div class="acts"><button class="btn pri" id="c">閉じる</button></div>`,md=>$(md,'#c').onclick=closeModal);
+}
+function stockView(){
+  modal(`<h2>在庫・棚卸し</h2><p class="note">入荷で増えた数量です。月末に実際の数を入力すると、在庫額を記録します（月次の実績原価に使います）。</p>
+   <table class="tbl"><tr><th>品目</th><th class="r">帳簿</th><th class="r">実在庫</th></tr>
+   ${S.supplies.map(s=>`<tr><td>${esc(s.name)}（${fmt(s.price)}/${esc(s.unit)}）</td><td class="r">${s.stock}${esc(s.unit)}</td><td class="r"><input type="number" data-sc="${s.id}" style="width:90px" placeholder="${s.stock}"></td></tr>`).join('')}</table>
+   <div class="acts"><button class="btn" id="c">閉じる</button><button class="btn pri" id="ok">棚卸しを記録</button></div>`,md=>{
+    $(md,'#c').onclick=closeModal;
+    $(md,'#ok').onclick=()=>{let amt=0;md.querySelectorAll('[data-sc]').forEach(i=>{const s=S.supplies.find(x=>x.id===i.dataset.sc);if(i.value!=='')s.stock=+i.value;amt+=s.stock*s.price;});
+      S.stockCounts=S.stockCounts||[];S.stockCounts.push({day:ymd(new Date()),amount:amt});save();closeModal();toast(`在庫額 ${fmt(amt)} を記録しました`);};
+  });
+}
+
+/* ---------- 店主ビュー ---------- */
+function renderOwner(){
+  const today=S.currentDay||ymd(new Date());
+  const month=monthOf(today);const ms=monthStats(month,today.slice(0,10));
+  const unpaid=Object.values(S.seatVisit).reduce((s,vid)=>s+unpaidAmt(S.items.filter(i=>i.visitId===vid)),0);
+  const lastClosed=[...S.days].reverse().find(d=>d.closedAt);
+  const page=S.ui.ownerPage||'home';
+  let body='';
+  if(page==='home'){
+    const vm=S.ui.ownerMonth||month;
+    const days=ledgerDays(vm);
+    const lgs=days.map(dayLedger);
+    const mIn=sum(lgs,l=>l.income),mOut=sum(lgs,l=>l.out);
+    const shift=n=>{const [y,m]=vm.split('-').map(Number);const d=new Date(y,m-1+n,1);return ymd(d).slice(0,7);};
+    const ledgerCard=`<div class="ocard"><div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn" data-mon="${shift(-1)}" style="padding:6px 12px">‹</button><b>${vm.replace('-','年')}月の日別の収支</b><button class="btn" data-mon="${shift(1)}" style="padding:6px 12px">›</button></div>
+       <div class="orow" style="font-size:12px;color:var(--sub)"><span>日付</span><span>収入／支出／差引</span></div>
+       ${lgs.map(l=>`<div class="orow" data-day="${l.d}" style="cursor:pointer"><span>${l.d.slice(5).replace('-','/')}${l.close&&l.close.closedAt?'':(l.d===S.currentDay?' <span class="warnTxt">営業中</span>':'')}</span>
+         <span style="text-align:right">${fmt(l.income)}／${fmt(l.out)}／<b class="${l.net<0?'diffNeg':''}">${fmt(l.net)}</b> ›</span></div>`).join('')||'<div class="note">この月の記録はありません</div>'}
+       ${lgs.length?`<div class="orow"><b>月合計</b><span>${fmt(mIn)}／${fmt(mOut)}／<b class="${mIn-mOut<0?'diffNeg':''}">${fmt(mIn-mOut)}</b></span></div>`:''}
+       <p class="note">支出は入荷した日の仕入れと、その日の経費です。家賃などの固定費は月単位なので、日別には入れず「見込み利益」で日割りしています。</p></div>`;
+    body=`<div class="ocard"><small>今月の売上（${month.replace('-','年')}月）</small><div class="hero">${fmt(ms.sales)}</div></div>
+     <div class="ocard"><small>今日の売上${S.currentDay?'（営業中）':''}</small><div class="v">${fmt(daySales(today))}</div></div>
+     <div class="ocard link" data-go="profit"><small>見込み利益（${month.slice(5)}/1〜${today.slice(8,10)}・経費確認日 ${ymd(new Date())}）</small><div class="v">${fmt(ms.profit)}</div>
+       ${ms.missing||uncostedProducts().length?`<div class="warnTxt">原価未登録の商品 ${uncostedProducts().length}品（販売${ms.missing}杯分を原価0で計算中）</div>`:''}<small>内訳を見る ›</small></div>
+     <div class="ocard"><small>未会計額</small><div class="v">${fmt(unpaid)}</div></div>
+     <div class="ocard"><small>直近のレジ差額${lastClosed?'（'+lastClosed.id+'）':''}</small><div class="v ${lastClosed&&lastClosed.diff<0?'diffNeg':''}">${lastClosed?(lastClosed.diff>0?'+':'')+fmt(lastClosed.diff):'—'}</div></div>
+     ${ledgerCard}
+     <div class="ocard link" data-go="exp"><small>経費・固定費の登録 ›</small></div>
+     <div class="ocard link" id="csvBtn"><small>日別の収支をCSVで書き出す（Excel用）›</small></div>`;
+  }else if(page==='profit'){
+    body=`<div class="ocard"><small>見込み利益の内訳（${month} 1〜${ms.days}日）</small>
+      <div class="orow"><span>売上</span><b>${fmt(ms.sales)}</b></div>
+      <div class="orow"><span>− 精算商品のレシピ原価</span><b>${fmt(ms.cost)}</b></div>
+      <div class="orow"><span>− サービス・こぼれの原価</span><b>${fmt(ms.waste)}</b></div>
+      <div class="orow"><span>− 固定費（日割り ${ms.days}/${ms.dim}日）</span><b>${fmt(ms.fixed)}</b></div>
+      <div class="orow"><span>− 変動経費（当月）</span><b>${fmt(ms.variable)}</b></div>
+      <div class="orow"><span><b>見込み利益</b></span><b>${fmt(ms.profit)}</b></div>
+      <p class="note">参考：当月の仕入額 ${fmt(ms.purchases)}。仕入れは在庫として扱い、見込み利益では販売分の原価だけを引きます。</p></div>
+      ${uncostedProducts().length?`<div class="ocard"><small>原価未登録の商品</small>${uncostedProducts().map(p=>`<div class="orow"><span>${esc(p.name)}</span><span>${fmt(p.price)}</span></div>`).join('')}<p class="note">店舗設定の販売メニューで1杯あたり原価を入れると、利益の過大表示がなくなります。</p></div>`:''}`;
+  }else if(page==='exp'){
+    body=`<div class="ocard"><small>固定費（月額・日割りで計上）</small>${S.expenses.filter(e=>e.fixed).map(e=>`<div class="orow"><span>${esc(e.name)}</span><span>${fmt(e.amount)} <button data-del="${e.id}" style="color:var(--warn)">削除</button></span></div>`).join('')}</div>
+     <div class="ocard"><small>当月の経費（日付つき）</small>${S.expenses.filter(e=>!e.fixed&&e.month===month).map(e=>`<div class="orow"><span>${e.day?e.day.slice(5).replace('-','/')+' ':''}${esc(e.name)}</span><span>${fmt(e.amount)} <button data-del="${e.id}" style="color:var(--warn)">削除</button></span></div>`).join('')||'<div class="note">なし</div>'}</div>
+     <div class="ocard"><small>経費を追加</small>
+       <div class="row" style="display:flex;gap:6px;margin-top:6px"><input id="en" placeholder="名目（例：おしぼり）" style="flex:2;padding:9px;border:1.5px solid var(--line);border-radius:8px;min-width:0"><input id="ea" type="number" placeholder="金額" style="flex:1;padding:9px;border:1.5px solid var(--line);border-radius:8px;min-width:0"></div>
+       <div class="chips" style="margin-top:8px"><button class="chip" data-fx="1">毎月の固定費</button><button class="chip on" data-fx="0">この日の経費</button></div>
+       <div class="row" id="oneOff" style="display:flex;gap:6px;margin-top:8px"><input id="ed" type="date" value="${(S.currentDay||ymd(new Date())).slice(0,10)}" style="flex:1;padding:9px;border:1.5px solid var(--line);border-radius:8px;min-width:0">
+         <select id="es" style="flex:1;padding:9px;border:1.5px solid var(--line);border-radius:8px;background:#fff"><option value="safe">金庫</option><option value="bank">銀行口座</option><option value="owner">店主の立替</option></select></div>
+       <p class="note">営業中にレジの現金で払った経費は、右上の「レジ予定残高」→「釣銭補充・回収・経費払い」で記録してください（レジ残高からも引かれます）。</p>
+       <button class="payBtn" id="eAdd" style="font-size:18px;padding:12px">追加する</button></div>`;
+  }else if(page.startsWith('day:')){
+    const d=page.slice(4);const lg=dayLedger(d);const pays=lg.pays;const c=lg.close;
+    body=`<div class="ocard"><small>${d} の収支</small>
+        <div class="orow"><span>収入（売上 ${pays.length}件）</span><b>${fmt(lg.income)}</b></div>
+        <div class="orow"><span>支出：仕入れ</span><b>${fmt(lg.purchase)}</b></div>
+        <div class="orow"><span>支出：経費</span><b>${fmt(lg.expense)}</b></div>
+        <div class="orow"><span><b>差引</b></span><b class="${lg.net<0?'diffNeg':''}" style="font-size:20px">${fmt(lg.net)}</b></div></div>
+      <div class="ocard"><small>レジ締め</small>${c&&c.closedAt?`
+        <div class="orow"><span>開店時の実額</span><span>${fmt(c.openingCash)}</span></div>
+        <div class="orow"><span>予定額／実額</span><span>${fmt(c.expected)}／${fmt(c.actual)}</span></div>
+        <div class="orow"><span>差額</span><b class="${c.diff<0?'diffNeg':''}">${c.diff>0?'+':''}${fmt(c.diff)}</b></div>
+        <div class="orow"><span>金庫へ移した額／翌日の釣銭</span><span>${fmt(c.toSafe)}／${fmt(c.nextFloat)}</span></div>`:`<div class="note">${c?'まだ締めていません（営業中）':'この日は営業していません'}</div>`}</div>
+      <div class="ocard"><small>支出の明細</small>
+        ${lg.pcs.map(p=>`<div class="orow"><span>${hm(p.ts)} 仕入れ ${esc(p.lines.map(l=>l.name+l.qty+l.unit).join('・'))}<br><span class="note">${SRC[p.source]}${p.source==='credit'?(p.paid?'（'+p.paidAt+' 支払済）':'（未払い）'):''}</span></span><span>${fmt(p.total)}</span></div>`).join('')}
+        ${lg.exps.map(e=>`<div class="orow"><span>経費 ${esc(e.name)}<br><span class="note">${SRC[e.source]||(e.source==='owner'?'店主の立替':'')}</span></span><span>${fmt(e.amount)}</span></div>`).join('')}
+        ${lg.payoffs.map(p=>`<div class="orow"><span>掛けの支払い（入荷日 ${p.day}）<br><span class="note">支出は入荷日に計上済み</span></span><span class="note">${fmt(p.total)}</span></div>`).join('')}
+        ${lg.pcs.length+lg.exps.length+lg.payoffs.length?'':'<div class="note">なし</div>'}</div>
+      <div class="ocard"><small>収入の明細（会計ごと）</small></div>`+pays.map(p=>`<div class="ocard"><small>${hm(p.ts)} ${esc(p.label)}</small>${p.lines.map(l=>`<div class="orow"><span>${esc(l.name)} ×${l.qty}</span><span>${fmt(l.qty*l.price)}</span></div>`).join('')}${p.extra?`<div class="orow"><span>最低利用額との差額</span><span>${fmt(p.extra)}</span></div>`:''}<div class="orow"><b>合計</b><b>${fmt(p.total)}</b></div></div>`).join('');
+  }
+  return `<div class="top"><button class="menuBtn" id="back">${page==='home'?'‹ 営業へ':'‹ 戻る'}</button><div class="spacer"></div><span style="font-weight:700">${esc(S.settings.storeName)}</span></div><div class="owner">${body}</div>`;
+}
+function bindOwner(app){
+  $(app,'#back').onclick=()=>{if((S.ui.ownerPage||'home')==='home')S.ui.view='main';else S.ui.ownerPage='home';save();render();};
+  app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{S.ui.ownerPage=b.dataset.go;render();});
+  app.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{S.ui.ownerPage='day:'+b.dataset.day;render();});
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.expenses=S.expenses.filter(e=>e.id!==b.dataset.del);save();render();});
+  app.querySelectorAll('[data-mon]').forEach(b=>b.onclick=()=>{S.ui.ownerMonth=b.dataset.mon;save();render();});
+  $(app,'#csvBtn')&&($(app,'#csvBtn').onclick=exportLedgerCsv);
+  let fx=false;app.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{fx=b.dataset.fx==='1';app.querySelectorAll('[data-fx]').forEach(x=>x.classList.toggle('on',x===b));$(app,'#oneOff').style.display=fx?'none':'flex';});
+  $(app,'#eAdd')&&($(app,'#eAdd').onclick=()=>{const n=$(app,'#en').value.trim(),a=+$(app,'#ea').value;if(!n||!a)return;
+    if(fx) S.expenses.push({id:uid(),name:n,amount:a,fixed:true,month:null});
+    else{const d=$(app,'#ed').value||ymd(new Date());S.expenses.push({id:uid(),name:n,amount:a,fixed:false,month:monthOf(d),day:d,source:$(app,'#es').value});}
+    save();render();toast('経費を記録しました');});
+}
+
+/* ---------- 店舗設定（左：設定／右：プレビュー） ---------- */
+const STEPS=['席','販売メニュー','仕入れ品','店舗ルール','プレビュー'];
+function renderSettings(){
+  const st=S.settings;const step=S.ui.setStep||0;
+  let f='';
+  if(step===0){
+    f=`<div class="row"><label>店名</label><input data-s="storeName" value="${esc(st.storeName)}" style="flex:1"></div>
+       <div class="row"><label>席数</label><input data-s="seatCount" type="number" min="1" max="30" value="${st.seatCount}" style="width:90px"></div>
+       <div class="row"><label>カウンターの並び順</label><input data-s="seatOrder" value="${esc(st.seatOrder)}" style="flex:1"></div>
+       <p class="note">並び順は入口側から「1,2,3…」のようにカンマ区切りで入れます。実際のカウンターと同じ順で画面に並びます。</p>
+       <div class="row"><label>前回からの釣銭</label><input data-top="lastFloat" type="number" value="${S.lastFloat}" style="width:140px"></div>`;
+  }else if(step===1){
+    f=`<div class="row"><label>カテゴリー</label><input id="cats" value="${esc(S.categories.join(','))}" style="flex:1"></div>
+      <div class="pedit colHead"><span>商品名</span><span>売価</span><span>カテゴリー</span><span>1杯原価</span><span></span></div>
+      ${S.products.map(p=>`<div class="pedit"><input data-pp="name" data-id="${p.id}" value="${esc(p.name)}"><input data-pp="price" data-id="${p.id}" type="number" value="${p.price}"><select data-pp="cat" data-id="${p.id}">${S.categories.map(c=>`<option ${c===p.cat?'selected':''}>${esc(c)}</option>`).join('')}</select><input data-pp="cost" data-id="${p.id}" type="number" value="${p.cost??''}" placeholder="未登録"><button class="btn warn" data-pdel="${p.id}">削除</button></div>`).join('')}
+      <button class="btn" id="padd">＋ 商品を追加</button>
+      <p class="note">「ボトル」カテゴリーの商品を注文すると、キープ登録（呼び名・棚）を開きます。原価が空欄の商品は件数を店主ビューに表示します。並び順の先頭が定番です。</p>`;
+  }else if(step===2){
+    f=`<div class="pedit sup colHead"><span>品目</span><span>仕入単位</span><span>単価</span><span>現在庫</span><span></span></div>
+      ${S.supplies.map(s=>`<div class="pedit sup"><input data-sp="name" data-id="${s.id}" value="${esc(s.name)}"><input data-sp="unit" data-id="${s.id}" value="${esc(s.unit)}"><input data-sp="price" data-id="${s.id}" type="number" value="${s.price}"><input data-sp="stock" data-id="${s.id}" type="number" value="${s.stock}"><button class="btn warn" data-sdel="${s.id}">削除</button></div>`).join('')}
+      <button class="btn" id="sadd">＋ 品目を追加</button>`;
+  }else if(step===3){
+    f=`<div class="row"><label>最低利用額</label><input data-s="minSpend" type="number" value="${st.minSpend}" style="width:140px"></div>
+      <div class="row"><label>判定のしかた</label><select data-s="minMode"><option value="off" ${st.minMode==='off'?'selected':''}>使わない</option><option value="seat" ${st.minMode==='seat'?'selected':''}>1席あたり × 席数（まとめた席も数える）</option><option value="person" ${st.minMode==='person'?'selected':''}>1人あたり × 人数</option><option value="check" ${st.minMode==='check'?'selected':''}>伝票ごとに固定額</option></select></div>
+      <p class="note">例：1席あたり NT$300 で2席をまとめると、最低利用額は NT$600 になります。</p>
+      <div class="row"><label>不足していたら</label><select data-s="minPolicy"><option value="notice" ${st.minPolicy==='notice'?'selected':''}>表示だけ（請求しない）</option><option value="charge" ${st.minPolicy==='charge'?'selected':''}>差額を会計に加算</option></select></div>
+      <div class="row"><label>ボトルキープ</label><select data-s="keepEnabled"><option value="1" ${st.keepEnabled?'selected':''}>使う</option><option value="0" ${!st.keepEnabled?'selected':''}>使わない</option></select></div>
+      <p class="note">支払いは現金のみ、チャージ（席料）はなしで動きます。最低利用額の金額・判定・不足時の対応は店主が決めて入れてください。初期値は例です。</p>`;
+  }else{
+    f=`<p>右側が実際の営業画面の見え方です。内容を確認したら「この内容で始める」を押してください。</p>
+      <p class="note">原価未登録の商品：${uncostedProducts().length}品。レシピ原価と固定費は後から追加できます。</p>
+      <button class="payBtn" id="finish">この内容で始める</button>`;
+  }
+  const seats=seatList();
+  const prev=`<div class="note" style="margin-bottom:6px">プレビュー</div><div class="prevSeats">${seats.map(s=>`<span>${s}</span>`).join('')}</div>
+    ${S.categories.map(c=>{const ps=S.products.filter(p=>p.cat===c);return ps.length?`<div style="font-weight:700;margin:10px 0 6px">${esc(c)}</div><div class="grid" style="overflow:visible">${ps.map(p=>`<div class="pbtn" style="min-height:70px;padding:8px"><span class="n" style="font-size:16px">${esc(p.name)}</span><span class="p" style="font-size:17px">${fmt(p.price)}</span></div>`).join('')}</div>`:''}).join('')}`;
+  return `<div class="top"><span style="font-weight:700;font-size:18px">店舗設定</span><div class="spacer"></div>${st.firstRunDone?'<button class="menuBtn" id="back">‹ 営業へ</button>':''}</div>
+   <div class="setWrap"><div class="setForm">
+     ${!st.firstRunDone?'<p class="note">初回設定です。小規模バーのひな形（7席・台湾元）を入れてあります。順に確認してください。</p>':''}
+     <div class="steps">${STEPS.map((t,i)=>`<button data-step="${i}" class="${i===step?'on':''}">${i+1}. ${t}</button>`).join('')}</div>
+     ${f}
+     <div class="acts">${step>0?'<button class="btn" id="prev">戻る</button>':''}${step<4?'<button class="btn pri" id="next">次へ</button>':''}</div>
+   </div><div class="setPrev">${prev}</div></div>`;
+}
+function bindSettings(app){
+  const st=S.settings;const rer=()=>{save();const y=$(app,'.setForm').scrollTop;render();const f=document.querySelector('.setForm');if(f)f.scrollTop=y;};
+  app.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{S.ui.setStep=+b.dataset.step;rer();});
+  $(app,'#next')&&($(app,'#next').onclick=()=>{S.ui.setStep++;rer();});
+  $(app,'#prev')&&($(app,'#prev').onclick=()=>{S.ui.setStep--;rer();});
+  $(app,'#back')&&($(app,'#back').onclick=()=>{S.ui.view='main';save();render();});
+  $(app,'#finish')&&($(app,'#finish').onclick=()=>{st.firstRunDone=true;S.ui.view='main';S.ui.cat=S.categories[0];S.ui.seat=seatList()[0];save();render();});
+  app.querySelectorAll('[data-s]').forEach(i=>i.onchange=()=>{const k=i.dataset.s;let v=i.value;
+    if(['seatCount','minSpend'].includes(k))v=Math.max(0,+v||0);
+    if(k==='keepEnabled')v=v==='1';
+    if(k==='seatCount'&&v<1)v=1;
+    st[k]=v;
+    if(k==='seatCount'){S.groups=S.groups.map(g=>g.filter(s=>s<=v)).filter(g=>g.length>1);if(S.ui.seat>v)S.ui.seat=1;}
+    rer();});
+  app.querySelectorAll('[data-top]').forEach(i=>i.onchange=()=>{S[i.dataset.top]=+i.value||0;rer();});
+  $(app,'#cats')&&($(app,'#cats').onchange=e=>{const c=e.target.value.split(/[,、]/).map(x=>x.trim()).filter(Boolean);if(c.length){S.categories=c;S.products.forEach(p=>{if(!c.includes(p.cat))p.cat=c[0]});}rer();});
+  app.querySelectorAll('[data-pp]').forEach(i=>i.onchange=()=>{const p=S.products.find(x=>x.id===i.dataset.id);const k=i.dataset.pp;
+    if(k==='price')p.price=+i.value||0; else if(k==='cost')p.cost=i.value===''?null:+i.value; else p[k]=i.value;
+    if(k==='cat')p.bottle=i.value==='ボトル';rer();});
+  app.querySelectorAll('[data-pdel]').forEach(b=>b.onclick=()=>{S.products=S.products.filter(p=>p.id!==b.dataset.pdel);rer();});
+  $(app,'#padd')&&($(app,'#padd').onclick=()=>{S.products.push({id:uid(),name:'新しい商品',price:0,cat:S.categories[0],cost:null,soldOut:false});rer();});
+  app.querySelectorAll('[data-sp]').forEach(i=>i.onchange=()=>{const s=S.supplies.find(x=>x.id===i.dataset.id);const k=i.dataset.sp;s[k]=['price','stock'].includes(k)?(+i.value||0):i.value;rer();});
+  app.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{S.supplies=S.supplies.filter(s=>s.id!==b.dataset.sdel);rer();});
+  $(app,'#sadd')&&($(app,'#sadd').onclick=()=>{S.supplies.push({id:uid(),name:'新しい品目',unit:'個',price:0,stock:0});rer();});
+}
+
+render();
+</script>
+</body>
+</html>

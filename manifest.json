@@ -1,0 +1,21 @@
+{
+ "name": "バー注文・仕入れ管理",
+ "short_name": "バー注文",
+ "start_url": "./",
+ "display": "standalone",
+ "orientation": "landscape",
+ "background_color": "#ffffff",
+ "theme_color": "#0b5d4b",
+ "icons": [
+  {
+   "src": "icon-180.png",
+   "sizes": "180x180",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}
